@@ -30,7 +30,6 @@
 | `animagine_xl4_tagedit_txt2img.json` | 参考图 → 打标 → LLM 改写 → **空白画布重绘** | 只借标签、不复用像素，构图全新 |
 | `animagine_xl4_tagedit_img2img.json` | 参考图 → 打标 → LLM 改写 → **图生图** | 保留结构，按指令改内容 |
 | `animagine_xl4_inpaint_outfit.json` | **遮罩局部重绘**（如只换衣服） | `VAEEncodeForInpaint` + `SetLatentNoiseMask`，遮罩外像素级保留 |
-| `animagine_xl4_pose_swap.json` | **姿势锁定换人/换装** | `DWPose_Preprocessor` + ControlNet(OpenPose SDXL) |
 | `AB_pipeline_animagine_vs_noobai.json` | **双模型 A/B 对比** | 共享底噪、同随机种子、同一串 LLM 改写标签，单次运行出两张可比图 |
 | `animagine_xl4_neuralbooru_txt2img.json` | 用第三方 NeuralBooru 节点做"自然语言 → booru 标签" | 可选依赖 |
 
@@ -43,13 +42,13 @@ flowchart LR
     IMG[参考图] --> TAG[WD ViT Tagger v3<br/>图片 → 标签]
     TAG --> LLM[Ollama Tag Editor<br/>本地 LLM 按指令改写标签]
     LLM --> CLIP[CLIP Text Encode<br/>+ 质量词]
-    IMG -.可选.-> LAT[VAE Encode / 遮罩 / ControlNet]
+    IMG -.可选.-> LAT[VAE Encode / 遮罩]
     CLIP --> KS[KSampler]
     LAT --> KS
     KS --> OUT[出图]
 ```
 
-三类可组合的"结构控制"：**空白画布（全自由）/ 图生图（保结构）/ 遮罩与骨骼（精确控制）**，
+三类可组合的"结构控制"：**空白画布（全自由）/ 图生图（保结构）/ 遮罩（精确局部）**，
 内容控制统一交给"打标 + LLM 改写标签"这一段——需求变化时通常只需改一句 instruction。
 
 ---
@@ -86,10 +85,9 @@ model.safetensors    # 权重（约 360MB）
 selected_tags.csv    # 10861 个标签
 ```
 
-### 4. 准备绘图模型与 ControlNet
+### 4. 准备绘图模型
 
 - `ComfyUI/models/checkpoints/`：`animagine-xl-4.0-opt.safetensors`、`NoobAI-XL-Vpred-v1.0.safetensors`（或替换为你自己的 SDXL 系模型，并在工作流里改下拉框）
-- 仅 `pose_swap` 工作流需要：`ComfyUI/models/controlnet/OpenPoseXL2.safetensors`，以及 DWPose 预处理器模型 `yolox_l.onnx` + `dw-ll_ucoco_384.onnx`（放在 `custom_nodes/comfyui_controlnet_aux/ckpts/yzd-v/DWPose/`）
 
 ---
 
