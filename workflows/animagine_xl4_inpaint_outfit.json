@@ -1,0 +1,109 @@
+{
+  "11": {
+    "inputs": { "image": "example.png" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "载入参考图 (双击图片→用遮罩编辑器涂白裙子区域)" }
+  },
+  "12": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 832,
+      "height": 1216,
+      "crop": "center",
+      "image": ["11", 0]
+    },
+    "class_type": "ImageScale",
+    "_meta": { "title": "缩放参考图到 832x1216" }
+  },
+  "18": {
+    "inputs": {
+      "pixels": ["12", 0],
+      "vae": ["4", 2],
+      "mask": ["11", 1],
+      "grow_mask_by": 6
+    },
+    "class_type": "VAEEncodeForInpaint",
+    "_meta": { "title": "VAE Encode (for Inpainting): 只编码遮罩外区域" }
+  },
+  "19": {
+    "inputs": {
+      "samples": ["18", 0],
+      "mask": ["11", 1]
+    },
+    "class_type": "SetLatentNoiseMask",
+    "_meta": { "title": "Set Latent Noise Mask: 遮罩外不重画" }
+  },
+  "4": {
+    "inputs": { "ckpt_name": "animagine-xl-4.0-opt.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint (Animagine XL 4.0 Opt)" }
+  },
+  "14": {
+    "inputs": {
+      "image": ["11", 0],
+      "model_name": "wd-vit-tagger-v3",
+      "dtype": "auto",
+      "general_threshold": 0.35,
+      "character_threshold": 0.75,
+      "add_rating": false,
+      "exclude_tags": "",
+      "batch_size": 4
+    },
+    "class_type": "WDTimmTagger",
+    "_meta": { "title": "① WD Tagger: 识别原图标签" }
+  },
+  "17": {
+    "inputs": {
+      "original_tags": ["14", 0],
+      "instruction": "把连衣裙改成黑色，其余保持不变",
+      "model": "hf.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive:Q4_K_M",
+      "base_url": "http://127.0.0.1:11434",
+      "temperature": 0.3,
+      "max_tokens": 1024
+    },
+    "class_type": "OllamaTagEditor",
+    "_meta": { "title": "② Ollama Tag Editor: Qwen 改标签" }
+  },
+  "15": {
+    "inputs": {
+      "text": ["17", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "③ 正向: 编辑后的标签" }
+  },
+  "7": {
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry, white dress, white skirt, white shirt",
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "负向提示词 (已加 white dress/skirt 补刀)" }
+  },
+  "3": {
+    "inputs": {
+      "seed": 982659310123,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "positive": ["15", 0],
+      "negative": ["7", 0],
+      "latent_image": ["19", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (局部重绘 denoise 1.0)" }
+  },
+  "8": {
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "9": {
+    "inputs": { "images": ["8", 0], "filename_prefix": "animagine_inpaint_outfit" },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}

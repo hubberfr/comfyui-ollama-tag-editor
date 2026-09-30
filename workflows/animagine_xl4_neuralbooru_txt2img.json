@@ -1,0 +1,87 @@
+{
+  "10": {
+    "inputs": {
+      "user_prompt": "a cute vampire girl with long silver hair and red eyes, wearing a black gothic lolita dress, standing in a dark classroom at night, moonlight shining through the window, looking at viewer, mischievous smile",
+      "system_prompt": "You convert a scene description into Danbooru tags for an anime image model. Output ONLY lowercase tags separated by commas. No sentences, no explanations, no numbering, no category words. Write attributes in real Danbooru tag style: 'blue eyes' not 'eye color blue', 'black hair' not 'hair color black'. Use spaces, not underscores. Use 1girl, 1boy, 2girls, etc. for people. Do NOT add quality tags like masterpiece, best quality, absurdres, score_9 - those are added separately.\nThe scene description may be written in Chinese; understand its meaning but always output tags in English.\nExample input: a cheerful blonde girl in a red dress on a beach at sunset\nExample output: 1girl, blonde hair, long hair, smile, red dress, beach, sunset, ocean, sky, cloud, standing\nNow output tags only for the next description. /no_think",
+      "prompt_template": "{prompt}, masterpiece, best quality, very aesthetic, absurdres",
+      "model": "hf.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive:Q4_K_M",
+      "enable_thinking": false,
+      "temperature": 0.4,
+      "max_tokens": 500,
+      "seed": 20260215,
+      "lm_studio_url": "http://localhost:11434",
+      "timeout": 120,
+      "api_key": "",
+      "exclude_categories": "",
+      "on_error": "raise",
+      "template_preset": "animagine_xl",
+      "sort_tags": true
+    },
+    "class_type": "NeuralBooru",
+    "_meta": { "title": "NeuralBooru (Ollama Qwen3.5-9B 写提示词)" }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "animagine-xl-4.0-opt.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint (Animagine XL 4.0 Opt)" }
+  },
+  "6": {
+    "inputs": {
+      "text": ["10", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "正向提示词 (LLM 输出)" }
+  },
+  "7": {
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry",
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "负向提示词 (固定)" }
+  },
+  "5": {
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "Empty Latent Image (832x1216)" }
+  },
+  "3": {
+    "inputs": {
+      "seed": 982659310123,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (Euler a / 28步 / CFG5)" }
+  },
+  "8": {
+    "inputs": {
+      "samples": ["3", 0],
+      "vae": ["4", 2]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "9": {
+    "inputs": {
+      "images": ["8", 0],
+      "filename_prefix": "animagine_neuralbooru"
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}

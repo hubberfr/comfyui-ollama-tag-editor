@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 模型权重与输出（体积极大，且各有许可，禁止入库）
+*.safetensors
+*.ckpt
+*.gguf
+*.onnx
+*.pth
+*.bin
+models/
+output/
+temp/
+input/
+
+# 日志与本地配置
+*.log
+*.lock
+.cache/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

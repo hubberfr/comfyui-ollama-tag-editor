@@ -1,0 +1,85 @@
+{
+  "11": {
+    "inputs": { "image": "example.png" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "载入参考图 (只用于打标, 不作底图)" }
+  },
+  "14": {
+    "inputs": {
+      "image": ["11", 0],
+      "model_name": "wd-vit-tagger-v3",
+      "dtype": "auto",
+      "general_threshold": 0.35,
+      "character_threshold": 0.75,
+      "add_rating": false,
+      "exclude_tags": "colored skin, blue skin, green skin, purple skin, red skin, grey skin",
+      "batch_size": 4
+    },
+    "class_type": "WDTimmTagger",
+    "_meta": { "title": "① WD Tagger: 图片 -> 标签" }
+  },
+  "17": {
+    "inputs": {
+      "original_tags": ["14", 0],
+      "instruction": "保持人物特征不变，改成夏日祭典夜晚的场景：烟花、灯笼、木质摊位，半身构图",
+      "model": "hf.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive:Q4_K_M",
+      "base_url": "http://127.0.0.1:11434",
+      "temperature": 0.4,
+      "max_tokens": 1024
+    },
+    "class_type": "OllamaTagEditor",
+    "_meta": { "title": "② Qwen: 把标签改成新场景" }
+  },
+  "15": {
+    "inputs": {
+      "text": ["17", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "③ 正向: 修改后的标签" }
+  },
+  "7": {
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry, colored skin, blue skin, green skin",
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "负向提示词 (固定)" }
+  },
+  "4": {
+    "inputs": { "ckpt_name": "animagine-xl-4.0-opt.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint (Animagine XL 4.0 Opt)" }
+  },
+  "5": {
+    "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "④ 空白画布 832x1216 (全新构图)" }
+  },
+  "3": {
+    "inputs": {
+      "seed": 2026091502,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "positive": ["15", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (空白画布重绘 denoise 1.0)" }
+  },
+  "8": {
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "9": {
+    "inputs": { "images": ["8", 0], "filename_prefix": "animagine_tagedit_txt2img" },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}

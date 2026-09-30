@@ -1,0 +1,147 @@
+{
+  "11": {
+    "inputs": { "image": "example.png" },
+    "class_type": "LoadImage",
+    "_meta": { "title": "共用: 载入参考图 (只用于打标)" }
+  },
+  "14": {
+    "inputs": {
+      "image": ["11", 0],
+      "model_name": "wd-vit-tagger-v3",
+      "dtype": "auto",
+      "general_threshold": 0.35,
+      "character_threshold": 0.75,
+      "add_rating": false,
+      "exclude_tags": "colored skin, blue skin, green skin, purple skin, red skin, grey skin",
+      "batch_size": 4
+    },
+    "class_type": "WDTimmTagger",
+    "_meta": { "title": "共用① WD Tagger: 图片 -> 标签" }
+  },
+  "17": {
+    "inputs": {
+      "original_tags": ["14", 0],
+      "instruction": "把服装改成黑色连衣裙，其余保持不变",
+      "model": "hf.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive:Q4_K_M",
+      "base_url": "http://127.0.0.1:11434",
+      "temperature": 0.3,
+      "max_tokens": 1024
+    },
+    "class_type": "OllamaTagEditor",
+    "_meta": { "title": "共用② Qwen: 改标签 (两个模型共用同一串标签)" }
+  },
+  "5": {
+    "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "共用③ 空潜空间 832x1216 (同底噪)" }
+  },
+
+  "4": {
+    "inputs": { "ckpt_name": "animagine-xl-4.0-opt.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "A: Animagine XL 4.0 Opt" }
+  },
+  "20": {
+    "inputs": { "clip": ["4", 1], "stop_at_clip_layer": -2 },
+    "class_type": "CLIPSetLastLayer",
+    "_meta": { "title": "A: CLIP Set Last Layer (-2)" }
+  },
+  "6": {
+    "inputs": { "text": ["17", 0], "clip": ["20", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "A: 正向 (共用 Qwen 标签)" }
+  },
+  "7": {
+    "inputs": {
+      "text": "worst quality, low quality, lowres, bad anatomy, bad hands, extra fingers, fewer fingers, text, watermark, signature, jpeg artifacts, colored skin, blue skin, green skin",
+      "clip": ["20", 0]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "A: 负向" }
+  },
+  "3": {
+    "inputs": {
+      "seed": 20260915,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "A: KSampler (Euler a / 28步 / CFG5)" }
+  },
+  "8": {
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "A: VAE Decode" }
+  },
+  "9": {
+    "inputs": { "images": ["8", 0], "filename_prefix": "ABP_A_animagine" },
+    "class_type": "SaveImage",
+    "_meta": { "title": "A: Save (ABP_A_animagine_...)" }
+  },
+
+  "24": {
+    "inputs": { "ckpt_name": "NoobAI-XL-Vpred-v1.0.safetensors" },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "B: NoobAI-XL Vpred v1.0" }
+  },
+  "25": {
+    "inputs": { "clip": ["24", 1], "stop_at_clip_layer": -2 },
+    "class_type": "CLIPSetLastLayer",
+    "_meta": { "title": "B: CLIP Set Last Layer (-2)" }
+  },
+  "26": {
+    "inputs": { "text": ["17", 0], "clip": ["25", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "B: 正向 (共用 Qwen 标签)" }
+  },
+  "27": {
+    "inputs": {
+      "text": "worst quality, low quality, lowres, bad anatomy, bad hands, extra fingers, fewer fingers, text, watermark, signature, jpeg artifacts, colored skin, blue skin, green skin",
+      "clip": ["25", 0]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "B: 负向" }
+  },
+  "28": {
+    "inputs": {
+      "seed": 20260915,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["31", 0],
+      "positive": ["26", 0],
+      "negative": ["27", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "B: KSampler (Euler / 28步 / CFG5, v-pred 禁 Karras)" }
+  },
+  "29": {
+    "inputs": { "samples": ["28", 0], "vae": ["24", 2] },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "B: VAE Decode" }
+  },
+  "30": {
+    "inputs": { "images": ["29", 0], "filename_prefix": "ABP_B_noobai_vpred" },
+    "class_type": "SaveImage",
+    "_meta": { "title": "B: Save (ABP_B_noobai_vpred_...)" }
+  },
+  "31": {
+    "inputs": {
+      "model": ["24", 0],
+      "sampling": "v_prediction",
+      "zsnr": true
+    },
+    "class_type": "ModelSamplingDiscrete",
+    "_meta": { "title": "B: 修正 v-pred (模型文件缺 v_prediction 标记, 必须手动指定)" }
+  }
+}
